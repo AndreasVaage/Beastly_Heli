@@ -1,0 +1,3 @@
+[submodule "labreport_template"]
+	path = labreport_template
+	url = https://github.com/ntnu-itk/labreport
