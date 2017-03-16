@@ -6,7 +6,7 @@
 init; % NB: Change this to the init file corresponding to your helicopter
 delta_t	= 0.25; % sampling time
 
-%Contineus time system
+%Continouos time system
 A_c=[0,  1,      0,       0;
      0,  0,    -K_2,      0;
      0,  0,      0,       1;
@@ -20,7 +20,7 @@ B_c = [ 0;
     ];
 
 % Discrete time system model. x = [lambda r p p_dot]
-A1 = eye(4)+h*A_c;
+A1 = eye(4)+delta_t*A_c;
 B1 = delta_t*B_c;
 
 % Number of states and inputs
@@ -32,10 +32,10 @@ x1_0 = pi;                              % Lambda
 x2_0 = 0;                               % r
 x3_0 = 0;                               % p
 x4_0 = 0;                               % p_dot
-x0 = [x1_0 x2_0 x3_0 x4_0];          % Initial values
+x0 = [x1_0 x2_0 x3_0 x4_0]';          % Initial values
 
 % Time horizon and initialization
-N  = 60;                                % Time horizon for states
+N  = 100;                                % Time horizon for states
 M  = N;                                 % Time horizon for inputs
 z  = zeros(N*mx+M*mu,1);                % Initialize z for the whole horizon
 z0 = z;                                 % Initial value for optimization
@@ -56,22 +56,25 @@ vub(N*mx+M*mu)  = 0;                    % We want the last input to be zero
 
 % Generate the matrix Q and the vector c (objecitve function weights in the QP problem) 
 Q1 = zeros(mx,mx);
-Q1(1,1) = 2;                             % Weight on state x1
+Q1(1,1) = 0.5;                             % Weight on state x1
 Q1(2,2) = 0;                            % Weight on state x2
 Q1(3,3) = 0;                             % Weight on state x3
 Q1(4,4) = 0;                            % Weight on state x4
-P1 = 2;                                 % Weight on input
+P1 = 1;                                 % Weight on input
 Q = 2*genq2(Q1,P1,N,M,mu);              % Generate Q
 c = zeros(N*mx+M*mu,1);                 % Generate c
 
-%% Generate system matrixes for linear model
-Aeq = gena2(A1,B1,N,4,1);  		 % Generate A, hint: gena2
-beq = zeros(N*mx+M*mu,1);        % Generate b
+%% Generate system matrices for linear model
+Aeq = gena2(A1,B1,N,mx,mu);  		 % Generate A, hint: gena2
+beq = zeros(400,1);
+%beq = zeros(N*mx+M*mu,1);            % Generate b
 beq(1:mx) = A1*x0; % Initial value
 
 %% Solve QP problem with linear model
+size(A1)
+size(B1)
 tic
-[z,lambda] = quadprog(Q,c,A1,B1,Aeq,beq,lb,ub,x0); % hint: quadprog
+[z,lambda] = quadprog(Q,c,[],[],Aeq,beq,vlb,vub,x0); % hint: quadprog
 t1=toc;
 
 % Calculate objective value
@@ -104,20 +107,29 @@ x4  = [zero_padding; x4; zero_padding];
 t = 0:delta_t:delta_t*(length(u)-1);
 
 figure(2)
-subplot(511)
+hold on;
+%subplot(511)
 stairs(t,u),grid
-ylabel('u')
-subplot(512)
-plot(t,x1,'m',t,x1,'mo'),grid
-ylabel('lambda')
-subplot(513)
-plot(t,x2,'m',t,x2','mo'),grid
-ylabel('r')
-subplot(514)
-plot(t,x3,'m',t,x3,'mo'),grid
-ylabel('p')
-subplot(515)
-plot(t,x4,'m',t,x4','mo'),grid
-xlabel('tid (s)'),ylabel('pdot')
+%subplot(512)
+plot(t,x1,'m',t,x1,'m'),grid
+legend('p_c', '\lambda');
+ylabel('u, \lambda [rad]');
+xlabel('Time [s]');
+title('Weight q = 0.1');
+hold off;
+%ylabel('lambda')
+% subplot(513)
+% plot(t,x2,'m',t,x2','mo'),grid
+% ylabel('r')
+% subplot(514)
+% plot(t,x3,'m',t,x3,'mo'),grid
+% ylabel('p')
+% subplot(515)
+% plot(t,x4,'m',t,x4','mo'),grid
+% xlabel('tid (s)'),ylabel('pdot')
 
-%matlab2tikz('someName.tex','parseStrings',false,'standalone',true, 'height', '6cm', 'width', '10cm');
+%matlab2tikz('tenQ.tex','parseStrings',true, 'height', '\figureheight', 'width', '\figurewidth');
+
+%% Add time to lambda
+pitchRef = [t', u];
+%plot(pitchRef(1,:), pitchRef(2,:))
