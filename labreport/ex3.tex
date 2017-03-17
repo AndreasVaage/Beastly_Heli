@@ -1,0 +1,41 @@
+\documentclass[11pt, a4paper, USenglish]{article} % change ``USenglish'' to ``norsk'' if applicable.
+
+\usepackage{kyblab} % Contains all included packages. See kyblab.sty.
+\usepackage{float} % [H]
+\renewcommand{\vec}[1]{\mathbf{#1}}
+%matlab2tikz
+\usepackage{pgfplots}
+        \pgfplotsset{compat=newest}
+        \pgfplotsset{plot coordinates/math parser=false}
+\usepackage{tikz}
+\usetikzlibrary{plotmarks}
+  \usetikzlibrary{arrows.meta}
+\usetikzlibrary{shapes.multipart}
+\usepgfplotslibrary{patchplots}
+\usepackage{grffile}
+\newlength{\figureheight}
+\newlength{\figurewidth}
+%end matlab2tikz
+
+\begin{document}
+\begin{figure}[H] 
+        \centering
+        \setlength{\figureheight}{6cm}
+        \setlength{\figurewidth}{10cm}
+        \input{figures/plots_ex3/subtask2_50Q}
+        \caption{Travel, \(\lambda\) and Optimal reference Q = diag[50,0,0,0]} 
+\label{fig:ex3_travel} 
+\end{figure}    
+
+\begin{figure}[H] 
+        \centering
+        \setlength{\figureheight}{6cm}
+        \setlength{\figurewidth}{10cm}
+        \input{figures/plots_ex3/subtask2_50Q_u}
+        \caption{U, \(p_{ref}\) and Optimal U, Q = diag[50,0,0,0]} 
+\label{fig:ex3_u} 
+\end{figure} 
+
+
+
+\end{document}
