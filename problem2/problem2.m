@@ -71,8 +71,6 @@ beq = zeros(400,1);
 beq(1:mx) = A1*x0; % Initial value
 
 %% Solve QP problem with linear model
-size(A1)
-size(B1)
 tic
 [z,lambda] = quadprog(Q,c,[],[],Aeq,beq,vlb,vub,x0); % hint: quadprog
 t1=toc;
@@ -106,17 +104,17 @@ x4  = [zero_padding; x4; zero_padding];
 %% Plotting
 t = 0:delta_t:delta_t*(length(u)-1);
 
-figure(2)
-hold on;
-%subplot(511)
-stairs(t,u),grid
-%subplot(512)
-plot(t,x1,'m',t,x1,'m'),grid
-legend('p_c', '\lambda');
-ylabel('u, \lambda [rad]');
-xlabel('Time [s]');
-title('Weight q = 0.1');
-hold off;
+% figure(2)
+% hold on;
+% %subplot(511)
+% stairs(t,u),grid
+% %subplot(512)
+% plot(t,x1,'m',t,x1,'m'),grid
+% legend('p_c', '\lambda');
+% ylabel('u, \lambda [rad]');
+% xlabel('Time [s]');
+% title('Weight q = 0.1');
+% hold off;
 %ylabel('lambda')
 % subplot(513)
 % plot(t,x2,'m',t,x2','mo'),grid
@@ -130,6 +128,3 @@ hold off;
 
 %matlab2tikz('tenQ.tex','parseStrings',true, 'height', '\figureheight', 'width', '\figurewidth');
 
-%% Add time to lambda
-pitchRef = [t', u];
-%plot(pitchRef(1,:), pitchRef(2,:))
