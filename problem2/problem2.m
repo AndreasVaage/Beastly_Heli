@@ -72,7 +72,7 @@ beq(1:mx) = A1*x0; % Initial value
 
 %% Solve QP problem with linear model
 tic
-[z,lambda] = quadprog(Q,c,[],[],Aeq,beq,vlb,vub,x0); % hint: quadprog
+[z,lambda] = quadprog(Q,c,[],[],Aeq,beq,vlb,vub); % hint: quadprog
 t1=toc;
 
 % Calculate objective value
@@ -84,6 +84,7 @@ for i=1:N*mx+M*mu
 end
 
 %% Extract control inputs and states
+
 u  = [z(N*mx+1:N*mx+M*mu);z(N*mx+M*mu)]; % Control input from solution
 
 x1 = [x0(1);z(1:mx:N*mx)];              % State x1 from solution
@@ -103,7 +104,7 @@ x4  = [zero_padding; x4; zero_padding];
 
 %% Plotting
 t = 0:delta_t:delta_t*(length(u)-1);
-
+plot(t,u);
 % figure(2)
 % hold on;
 % %subplot(511)

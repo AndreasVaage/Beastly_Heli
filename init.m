@@ -30,7 +30,7 @@ K_2 = K_p*l_a/J_t;
 K_3 = K_f*l_a/J_e;
 K_4 = K_p*l_a/J_e;
 
-%% Pitch closed loop syntesis
+%% Pitch closed loop synthesis
 % Controller parameters
 w_p = 1.8; % Pitch controller bandwidth.
 d_p = 1.0; % Pitch controller rel. damping.

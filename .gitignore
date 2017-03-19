@@ -1,8 +1,8 @@
 
 
 helicopter_quarc_win64
-helicopter3_quarc_win64
-Plotting_files_Keep_in_path
+helicopter*_quarc_win64
+Ploting_files_Keep_in_path/*
 *.rt-win64
 *.DS_Store
 ##---------------------------------------------------
