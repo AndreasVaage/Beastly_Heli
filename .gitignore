@@ -1,7 +1,7 @@
 
 
 helicopter_quarc_win64
-helicopter*_quarc_win64
+*_quarc_win64
 Ploting_files_Keep_in_path/*
 *.rt-win64
 *.DS_Store
@@ -54,3 +54,5 @@ octave-workspace
 *.synctex.gz
 *.fdb_latexmk
 *.fls
+*-blx.bib
+*.run.xml
