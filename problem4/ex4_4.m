@@ -1,8 +1,10 @@
+
+
 R = diag([1, 1]);
 Q_feedback = diag([100, 0,0,0,100,0]);
 t = 0:delta_t:delta_t*(length(u1)-1);
 %% Calculate K
-[K, P, e] = dlqr(A1, B1, Q_feedback, R, []);
+[K, P, e] = dlqr(A, B, Q_feedback, R, []);
 
 %% Export to Simulink
 pitchRef = [t', u1];
