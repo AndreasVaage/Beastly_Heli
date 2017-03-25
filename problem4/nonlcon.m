@@ -12,7 +12,7 @@ c = zeros(U, 1);
 
 for n = 1:U
     %c(n) = alpha * exp(-beta * (z((n - 1)*6 + 1) - lambda_t)^2) - z((n - 1)*6 + 5);
-    c(n) = alpha * exp(-beta * (lambda(n) - lambda_t)^2) - e(n);
+    c(n) = alpha * exp(-beta * (lambda(n) - lambda_t).^2) - e(n);
 end
 
 c_eq = [];
