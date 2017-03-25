@@ -20,6 +20,26 @@
 \usepackage{hyperref} % Provides clickable links. Always load last, but before cleveref.
 \usepackage{cleveref} % Provides the \Cref command, for cross-referencing of equations, sections, figures and tables. Always load last.
 
+%% Begin additions by Våge
+\usepackage{float} % [H]
+\renewcommand{\vec}[1]{\mathbf{#1}}
+%matlab2tikz
+\usepackage{pgfplots}
+        \pgfplotsset{compat=newest}
+        \pgfplotsset{plot coordinates/math parser=false}
+\usepackage{tikz}
+\usetikzlibrary{plotmarks}
+  \usetikzlibrary{arrows.meta}
+\usetikzlibrary{shapes.multipart}
+\usepgfplotslibrary{patchplots}
+\usepackage{grffile}
+\newlength{\figureheight}
+\newlength{\figurewidth}
+%end matlab2tikz
+
+%%End additions by Våge
+
+
 
 % ``listings'' package settings
 \definecolor{dkgreen}{rgb}{0,0.6,0}
