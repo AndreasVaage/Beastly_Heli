@@ -1,0 +1,15 @@
+
+\section{First flight}\label{first_flight}
+Before we start on more advanced control theory we tested the helicopter and the given PD- and PID- controller for pitch and elevation respectively.
+\begin{figure}[H] 
+        \centering
+        \setlength{\figureheight}{6cm}
+        \setlength{\figurewidth}{10cm}
+        \input{figures/problem1}
+        \caption{First flight testing the pitch PD-controller and the elevation PID-controller, the elevation reference is zero degrees.} 
+\label{fig:repetition} 
+\end{figure}
+
+As we can see in \cref{fig:repetition} the elevation reaches zero degrees as it should, but the pitch, which is controlled by a PD-controller has a few degrees standard deviation. This is intended to prevent drift in the travel caused by the fact that both rotors rotate in the same direction, thus creating a torque causing the helicopter to travel. Thus the standard pitch deviation is in fact a feed foreword to eliminate standard deviation in travel speed.\\
+\\
+Both controllers gave satisfactory performance, and provided a good base for more advanced control engineering.
