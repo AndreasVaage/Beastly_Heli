@@ -1,8 +1,16 @@
 \documentclass[11pt, a4paper, USenglish]{article} % change ``USenglish'' to ``norsk'' if applicable.
+\usepackage[utf8]{inputenc}
 \usepackage{kyblab} % Contains all included packages. See kyblab.sty.
+
+
+
 \begin{document}
 
-\subsection{Optimal Control of Pitch/Travel without Feedback}
+
+
+\section{Optimal Control of open loop Pitch and Travel}
+In this part of the exercise we will disregard elevation, that is, we assume $e = 0$. We will then calculate an optimal trajectory $x^{*}$ and a corresponding optimal input sequence $u^{*}$. This input sequence will be implemented as setpoints for the inner controllers, but we will not feed back the measured state to correct for deviations from the optimal trajectory. This control hierarchy is illustrated in \cref{fig:layers_openloop}.
+
 \begin{figure}[H]
     \centering
     \includegraphics[width=1.00\textwidth]{figures/layers_openloop.pdf}
@@ -10,9 +18,12 @@
 \label{fig:layers_openloop}
 \end{figure}
 
-\begin{equation}
-    \vec{\dot{x}} = A_c\vec{x} + B_c \vec{u} 
+We start by writing the model on continues time state space form.
+
+\begin{equation}\label{eq:contineus_time_model}
+    \vec{\dot{x}} = A_c\vec{x} + B_c u 
 \end{equation}
+Where $\vec{x}=\begin{bmatrix} \lambda&r&p&\dot{p} \end{bmatrix}^\top$ and $u=p_c$, further are $A_c$ and $B_c$ constructed from \cref{eq:model}. 
 
 \begin{equation*}
 A_c =
@@ -26,37 +37,76 @@ A_c =
     \begin{bmatrix} 0 \\ 0 \\ 0 \\ K_1K_{pp} \end{bmatrix}
 \end{equation*}
 
+The model in \cref{eq:contineus_time_model} models the lower layers of the system including the proses, sensors, actuators and the regulatory control. In \cref{fig:layers_openloop} this refers to the basic control layer, including the feedback loop and the physical layer. An important part of this layer structure is that the sampling frequency in the lower layers are higher than in the upper layers. As long as the lower layers have sufficiently higher frequency than the upper layers we can hide these lower layers and simply look at the helicopter and its basic controllers as a black box with input $u^*$ and output $\vec{x}$.\\
+
+We discretize the model using the forward Euler method:
+
 \begin{align*}
     \vec{x_{k+1}} &= \vec{x_k} + h\vec{\dot{x}_k} \\
-                  &= \vec{x_k} + h(A_c\vec{x_k} + B_c \vec{u_k}) \\  
-                  &= (I + hA_C)\vec{x_k} + hB_c \vec{u_k} \\  
+                  &= \vec{x_k} + h(A_c\vec{x_k} + B_c u_k) \\
+                  &= \underbrace{(I + hA_C)}_{A}\vec{x_k} + \underbrace{hB_c}_{B} u_k \\
 \end{align*}
 
+Next we will calculate the optimal trajectory for moving the helicopter from $x_0 = \begin{bmatrix}\lambda_0 &0&0&0 \end{bmatrix}^\top$ to $x_f = \begin{bmatrix}\lambda_f &0&0&0 \end{bmatrix}^\top$ when the elevation angle is assumed to be constant. Also we will implement the constraint 
+\begin{equation}
+    |p_k| \leq \frac{30\pi}{180},\quad k \in {1,\dots,N}
+\end{equation}
+Since the manipulated variable $p_c$ in this case is the setpoint for the $p$ controller, the constraint will also be implemented for the manipulated variable. We want to minimise the cost function 
+\begin{equation}\label{eq:cost_function}
+    \phi(\vec{z}) = \sum_{i=0}^{N-1}(\lambda_{i+1}-\lambda_f)^2 + rp_{ci}^2, \quad q\geq0
+\end{equation}
+Where $\vec{z}=\begin{bmatrix} \vec{x}_1^\top, \dots, \vec{x}_N^\top, {p_c}_{0}, \dots, {p_c}_{N-1} \end{bmatrix}^\top$. We use horizon $N = 100$, timestep $h=0.25$s, $\lambda_0 = \pi$ and $\lambda_f = 0$. 
 
-\begin{figure}[H] 
-        \centering
-        \setlength{\figureheight}{6cm}
-        \setlength{\figurewidth}{10cm}
-        \input{figures/plots_ex2/travelunderUnderModelbasis}
-        \caption{travelunderUnderModelbasis} 
-\label{fig:figure4} 
-\end{figure}
+Then cost function becomes:
+\begin{equation}
+    \phi(\vec{z}) = \sum_{i=0}^{N-1}\frac12\vec{x}_{i+1}^\top Q_{i+1} \vec{x}_{i+1}+ \frac12Rp_{ci}^2
+\end{equation}
 
-\begin{figure}[H] 
-        \centering
-        \setlength{\figureheight}{6cm}
-        \setlength{\figurewidth}{10cm}
-        \input{figures/plots_ex2/someOtherName}
-        \caption{someOtherName} 
-\label{fig:figure5} 
-\end{figure}
+Where $$R = 2r, \quad Q_{i+1} = \begin{bmatrix} 2&0&0&0 \\0&0&0&0 \\0&0&0&0 \\0&0&0&0\end{bmatrix}$$
+Finally we can rewrite the cost function to
+\begin{equation}
+    \phi(\vec{z}) = \frac12\vec{z}^\top G \vec{z}
+\end{equation}
+Where $G$ is a block diagonal matrix:
+\begin{equation}
+G = 
+    \begin{bmatrix}
+    Q_1 &0&\dots&\dots&\dots&0 \\
+    0 &\ddots&\ddots&&&\vdots \\ 
+    \vdots &\ddots&Q_N&\ddots&&\vdots \\ 
+    \vdots &&\ddots&R_0&\ddots&\vdots \\ 
+    \vdots &&&\ddots&\ddots&0 \\
+    0&\dots&\dots&\dots&0&R_{N-1}
+    \end{bmatrix}
+\end{equation}
+
+Next we write the model as an equality constrain:
+\begin{equation}\label{eq:equality_constrains}
+A_{eq}\vec{z}=b_{eq}
+\end{equation}
+Where $$A_{eq}= 
+\left[
+\begin{array}{ccccc|ccccc}
+I & 0 & \dots & \dots & 0  &-B_0 &0&\dots&\dots&0\\
+-A_1 & I &\ddots& & \vdots  &0 &\ddots&\ddots&&\vdots\\
+0 &\ddots&\ddots&\ddots&\vdots  &\vdots &\ddots&\ddots&\ddots&\vdots\\
+\vdots &\ddots&\ddots&\ddots&0&\vdots&&\ddots&\ddots&\vdots\\
+0 &\dots&0&-A_N&I  & 0 &\dots&\dots&0&-B_N
+\end{array}
+\right]$$
+and
+\begin{equation*}
+b_{eq} = \begin{bmatrix} A_0 \vec{x}_0 \\ 0 \\ \vdots \\ 0\end{bmatrix}
+\end{equation*}
+
+Then we solve the optimalisation problem using the MATLAB function quadprog. The resulting trajectory and manipulated variable are shown in \cref{fig:figure3,fig:figure1,fig:figure2}.
 
 \begin{figure}[H] 
         \centering
         \setlength{\figureheight}{6cm}
         \setlength{\figurewidth}{10cm}
         \input{figures/plots_ex2/zeroPointOneQ}
-        \caption{zeroPointOneQ} 
+        \caption{Optimal trajectory and input using weight $r=1$} 
 \label{fig:figure3} 
 \end{figure}
 
@@ -65,7 +115,7 @@ A_c =
         \setlength{\figureheight}{6cm}
         \setlength{\figurewidth}{10cm}
         \input{figures/plots_ex2/oneQ.tex}
-        \caption{oneQ} 
+        \caption{Optimal trajectory and input using weight $r=1$} 
 \label{fig:figure1}
 \end{figure}
 
@@ -74,9 +124,25 @@ A_c =
         \setlength{\figureheight}{6cm}
         \setlength{\figurewidth}{10cm}
         \input{figures/plots_ex2/tenQ}
-        \caption{tenQ} 
+        \caption{Optimal trajectory and input using weight $r=0.1$} 
 \label{fig:figure2} 
 \end{figure}
 
+As expected will an decrease in the weight $r$ increase the use of input, $p_c$, and make the system faster. We also notice that the input in fact are bounded by the constrains specified.
+\todo{Discuss}
+\textcolor{red}{Discuss overshoot and costfunction}
+
+Finally we started the helicopter and ran it with the optimal input sequence, $u^*_i ={p_c}_i, \quad i \in{0,\dots,N-1}$, in open loop as shown in \cref{fig:layers_openloop}. ${p_c}_i$ are seen in \cref{fig:figure1}, where we used the weight $r=1$. We have also added 5 seconds with zeroes before and after the input to stabilise the helicopter before it starts moving. The resulting travel for the helicopter are shown in \cref{fig:figure4}.
+
+\begin{figure}[H]
+        \centering
+        \setlength{\figureheight}{6cm}
+        \setlength{\figurewidth}{10cm}
+        \input{figures/plots_ex2/travelunderUnderModelbasis}
+        \caption{Helicopter travel ($\lambda$) in open loop with optimal pitch reference ($p_c$) as direct input to the pitch controller.}
+\label{fig:figure4}
+\end{figure}
+\todo{New figure?}
+As we see in \cref{fig:figure4}, the helicopter does not end up at the intended $180$ degrees, but closer to 50 degrees, without any signs for stopping. This is natural because, even though the pitch are controlled by the inner pd-controller, the travel are run in completely open loop. Thus small model errors and simplifications as well as physical disturbances will cause the deviation. 
 
 \end{document}

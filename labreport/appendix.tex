@@ -1,3 +1,8 @@
+\documentclass[11pt, a4paper, USenglish]{article} % change ``USenglish'' to ``norsk'' if applicable.
+\usepackage[utf8]{inputenc}
+\usepackage{kyblab} % Contains all included packages. See kyblab.sty.
+\begin{document}
+
 \addcontentsline{toc}{section}{Appendix} % Remove this if you don't want the appendix included in the table of contents.
 \appendix
 
@@ -5,7 +10,19 @@
 This section should contain your MATLAB code. DO NOT attach files posted online (that you didn't write). Note that the method used to input code below does not look as pretty when the lines are too long.
 
 \subsection{plot\_constraint.m}\label{sec:plot_constraint_m}
-\lstinputlisting{code/plot_constraint.m}\section{Simulink Diagrams}\label{sec:simulink}
+\lstinputlisting{code/plot_constraint.m}
+
+\subsection{problem2.m}\label{sec:problem2_m}
+\lstinputlisting{problem2/problem2.m}
+
+\subsection{problem3.m}\label{sec:problem3_m}
+\lstinputlisting{problem3/ex3_1.m}
+
+\subsection{problem4.m}\label{sec:problem4_m}
+\lstinputlisting{problem4/ex4.m}
+
+
+\section{Simulink Diagrams}\label{sec:simulink}
 This section should contain your Simulink diagrams. Just like the plots, these should be in vector format, like in \Cref{fig:simulink}. Make them tidy enough to understand.
 
 \subsection{A Simulink Diagram}
@@ -16,3 +33,4 @@ This section should contain your Simulink diagrams. Just like the plots, these s
 	\caption{A Simulink diagram.}
 \label{fig:simulink}
 \end{figure}
+\end{document}

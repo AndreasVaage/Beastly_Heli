@@ -1,0 +1,166 @@
+\section{Optimal Control in Two Dimensions}\label{sec:two_dimensions}
+We now want to extend our system to be able to fly over an obstacle as the helicopter moves. To facilitate this, we need control over the elevation as well as the travel. We therefore expand our input vector to include the manipulated variable $e_c$, which is the reference for elevation. This also gives us a new state vector, namely $x = [\lambda\, r\, p\, \dot{p}\, e\, \dot{e}]^T$. Coupled with our new input, $u = [p_c\, e_c]^T$, we obtain the new state space model for our helicopter seen in equation \ref{eq:two_dim_ss}. The subscript $c$ in equations \ref{eq:two_dim_A_c} and \ref{eq:two_dim_B_c} denote that these are time continuous matrices.
+\begin{subequations}\label{eq:two_dim_ss}
+\begin{align}
+    \label{eq:two_dim_A_c}
+    A_c &= \begin{bmatrix}
+        0 & 1 & 0 & 0 & 0 & 0\\
+        0 & 0 & -K_2 & 0 & 0 & 0\\
+        0 & 0 & 0 & 1 & 0 & 0\\
+        0 & 0 & -K_1K_{pp} & -K_1K_{pd} & 0 & 0\\
+        0 & 0 & 0 & 0 & 0 & 1\\
+        0 & 0 & 0 & 0 & -K_3K_{ep} & -K_3K_{ed}
+    \end{bmatrix}\\
+    \label{eq:two_dim_B_c}
+    B_c &= \begin{bmatrix}
+        0 & 0\\
+        0 & 0\\
+        0 & 0\\
+        K_1K_{pp} & 0\\
+        0 & 0\\
+        0 & K_3K_{ep}
+    \end{bmatrix}
+\end{align}
+\end{subequations}
+To discretize our helicopter model using forward Euler, we can use the MATLAB code listed in listing \ref{lst:two_dim_con_to_dis}.
+\begin{lstlisting}[caption=Discretization of the continuous model in equation \ref{eq:two_dim_ss}.,label=lst:two_dim_con_to_dis]
+%% Time step size 0.25 seconds
+delta_t = 0.25;
+%% Define continuous system
+A_c = [0, 1, 0, 0, 0, 0;
+       0, 0, -K_2, 0, 0, 0;
+       0, 0, 0, 1, 0, 0;
+       0, 0, -K_1*K_pp, -K_1*K_pd, 0, 0;
+       0, 0, 0, 0, 0, 1;
+       0, 0, 0, 0, -K_3*K_ep, -K_3*K_ed];
+   
+B_c = [0, 0;
+       0, 0;
+       0, 0;
+       K_1*K_pp, 0;
+       0, 0;
+       0, K_3*K_ep];
+%% Discretize the continuous system
+A = eye(6) + delta_t * A_c;
+B = delta_t * B_c;
+\end{lstlisting}
+To implement the obstacle, we want our helicopter to abide by the constraint given in equation \ref{eq:two_dim_obstacle}. This defines a small "mountain" for the helicopter to fly over.
+\begin{equation}\label{eq:two_dim_obstacle}
+    e_k \geq \alpha e^{-\beta (\lambda_k - \lambda_t)^2}\ \forall k\in [1,N]
+\end{equation}
+In Quadratic Programming, a quadratic objective function with linear constraints is solved. Since equation \ref{eq:two_dim_obstacle} is clearly not a linear constraint, a QP solver is unusable in this case. However, MATLAB includes the function \lstinline!fmincon! which can minimize an objective function with an arbitrary constraint function.\\
+\\
+To implement the constraint from equation \ref{eq:two_dim_obstacle} in MATLAB, we defined a seperate function, called \lstinline!nonlcon!. This function can be seen in listing \ref{lst:nonlcon}.
+\begin{lstlisting}[caption=MATLAB implementation of non-linear "mountain" constraint.,label=lst:nonlcon]
+function [c, c_eq] = nonlcon(z)
+%% alpha, beta, and lambda are given
+alpha = 0.2;
+beta = 20;
+lambda_t = 2 * pi / 3;
+
+%% extract time horizon size from input
+U = size(z, 1)  / 8;
+
+%% extract travel and elevation from input
+lambda = z(1:6:6*U);
+e = z(5:6:6*U);
+
+c = zeros(U, 1);
+
+for n = 1:U
+    c(n) = alpha * exp(-beta * (lambda(n) - lambda_t).^2) - e(n);
+end
+
+c_eq = [];
+
+end
+\end{lstlisting}
+Our new objective function, under the mountain constraint, is seen in equation \ref{eq:two_dim_objective_function}. In addition to this, the "discrete mountain constraints" have to be passed to \lstinline!fmincon! - that is, \lstinline!fmincon! needs to take into consideration the elevation constraint $c(x_k)\,\forall k\in [1,N]$, where $N$ is the time horizon.
+\begin{equation}\label{eq:two_dim_objective_function}
+    \phi = \sum_{i = 1}^N \bigg(\lambda_i - \lambda_f\bigg)^2 + q_1p_{ci}\,^2+q_2e_{ci}\,^2
+\end{equation}
+The setup of \lstinline!fmincon! to solve our new objective function with the imposed mountain constraint can be seen in listing \ref{lst:fmincon_setup}. Here, \lstinline!@nonlcon! is provided as a separate file, as seen in listing \ref{lst:nonlcon}.
+\begin{lstlisting}[caption=Setup of \lstinline!fmincon! for objective function \ref{eq:two_dim_objective_function}.,label=lst:fmincon_setup]
+%% Objective function
+objective = @(z) z'*Q*z;
+options = optimset('MaxFunEvals',60000,'Algorithm',  'active-set');
+z = fmincon(objective, z0,[],[],Aeq,beq,vlb,vub,@nonlcon,options);
+\end{lstlisting}
+\lstinline!Aeq! and \lstinline!Beq! in listing \ref{lst:fmincon_setup} are essentially equal to \lstinline!A! and \lstinline!B! from listing \ref{lst:two_dim_con_to_dis}, but repeated after each other, corresponding to the $40$ time steps \lstinline!fmincon! operates over. \lstinline!vlb! and \lstinline!vub! define the physical constraints for the pitch and elevation; that is, $-35^\circ \leq e \leq 35^\circ$ and $-60^\circ \leq p \leq 60^\circ$. Furthermore, \lstinline!z0! is simply a zero vector used by \lstinline!nonlcon!. Finally, the \lstinline!Q! matrix defines the importance of each state and drive penalties, and was computed as in listing \ref{lst:define_Q_and_q}.
+\begin{lstlisting}[caption=Definition of Q matrix and drive penalties.,label=lst:define_Q_and_q]
+%% Generate the matrix Q
+Q1 = zeros(mx,mx);
+Q1(1,1) = 0.5;       % Weight on travel
+Q1(2,2) = 1;         % Weight on travel dot
+Q1(3,3) = 0;         % Weight on pitch
+Q1(4,4) = 1;         % Weight on pitch dot
+Q1(5,5) = 1;         % Weight on elevation
+Q1(6,6) = 1;         % Weight on elevation dot
+
+q1 = 0.5;            % Weight on input pitch
+q2 = 0.5;            % Weight on input elevation
+
+Q = 2*genq2(Q1,[q1, 0; 0, q2],N,M,mu); % Generate Q
+\end{lstlisting}
+
+\subsection{Optimal open loop control}
+The optimal control input sequence $u^*$ and optimal trajectory $x^*$ were extracted from the result returned by \lstinline!fmincon! in listing \ref{lst:fmincon_setup}, and then subsequently exported to Simulink. The helicopter response under this scheme can be seen in figure \ref{fig:two_dim_open_loop}. It can clearly be seen that not only is the elevation control completely unsatisfactory, the travel drifts considerably even in the beginning of the experiment.
+\begin{figure} 
+        \centering
+        \setlength{\figureheight}{6cm}
+        \setlength{\figurewidth}{10cm}
+        \input{figures/plots_ex4/openLoop}
+        \caption{Optimal open loop control under mountain constraint.} 
+\label{fig:two_dim_open_loop} 
+\end{figure}
+\subsubsection{Thoughts on the considerable drift observed}
+As we have seen, the helicopter does not end up in the desired position, and does not fly over the mountain at all. We believe one large factor in why this might be is the direction the two rotors rotate. Both of the motors rotate in the same direction, thus introducing an unmodeled momentum around the axis of travel. Since the model does not know about this momentum, it does nothing to compensate, which explains why we observe moderate travel drift early on, and severe travel drift once the optimal input sequence is done executing.
+
+\subsection{Optimal closed loop control}
+To introduce feedback, we used the state- and drive penalties defined in equation \ref{eq:two_dim_lqr_matrices}. The MATLAB code for this can be seen in listing \ref{lst:two_dim_lqr_K}.
+\begin{equation}\label{eq:two_dim_lqr_matrices}
+    Q = \begin{bmatrix}
+        100 & 0 & 0 & 0 & 0 & 0\\
+        0 & 0 & 0 & 0 & 0 & 0\\
+        0 & 0 & 0 & 0 & 0 & 0\\
+        0 & 0 & 0 & 0 & 0 & 0\\
+        0 & 0 & 0 & 0 & 100 & 0\\
+        0 & 0 & 0 & 0 & 0 & 0
+    \end{bmatrix}\qquad
+    R = \begin{bmatrix}
+        1 & 0\\
+        0 & 1
+    \end{bmatrix}
+\end{equation}
+\begin{lstlisting}[caption=MATLAB code to generate LQR feedback.,label=lst:two_dim_lqr_K]
+%% Generate K for feedback under optimal control
+R = diag([1, 1]);
+Q_feedback = diag([100, 0,0,0,100,0]);
+[K, P, e] = dlqr(A, B, Q_feedback, R, []);
+\end{lstlisting}
+With feedback, the situation improves a little, which can be seen in figure \ref{fig:two_dim_closed_loop}. Now, the helicopter definitely swipes out a satisfactory trajectory as far as travel is concerned. However, it still does not make it "over the mountain". This seems to be a constant - no matter how heavily deviations in elevation was penalized, the helicopter would never make it over - the only result would be deteriorating travel fidelities. We believe this occurs because elevation and elevation rate is decoupled from the other states in our model, as discussed in section \ref{sec:decouple_discussion}.
+\begin{figure} 
+        \centering
+        \setlength{\figureheight}{6cm}
+        \setlength{\figurewidth}{10cm}
+        \input{figures/plots_ex4/closedLoop}
+        \caption{Optimal closed loop control under mountain constraint.} 
+\label{fig:two_dim_closed_loop} 
+\end{figure}
+\subsection{Decoupled elevation and elevation rate}\label{sec:decouple_discussion}
+As can be seen in equation \ref{eq:two_dim_A_c}, elevation and elevation rate does not in any way depend on pitch, according to our model. This is clearly wrong, as any pitch angle other than neutral will reduce the upward lift being generated. In fact, we have that $F_u = F_s\cdot\cos\theta$, where $F_u$ is the upward force, $F_s$ is the motor sum as before, and $\theta$ is the angular deviation from neutral in the pitch.\\
+\\
+Therefore, our model is completely oblivious to the fact that changing the pitch will reduce lift. This could explain why the helicopter is unable to fly over the mountain, even in the case of feedback. One solution would be to move into the strange and unfamiliar lands of non-linear models, acknowledging the fact that changing pitch reduces the elevation rate.
+
+\section{Optional constraints}
+In an attempt to compensate for modelling inaccuracies, and "force" the helicopter over the mountain, a further restriction of the allowed pitch was implemented. The maximum bounds for pitch was reduced from $-35^\circ\leq p\leq 35^\circ$ to $-20^\circ\leq p\leq 20^\circ$. This was the only change necessary to provoke the much better response seen in figure \ref{fig:closed_loop_restricted}.\\
+\\
+As is seen, the helicopter still does not quite make it past the tip of the mountain. This is however, the best behaviour we could provoke. Any further restrictions to $p$ or $\dot{p}$ tended to reduce the travel fidelity.
+\begin{figure}
+        \centering
+        \setlength{\figureheight}{6cm}
+        \setlength{\figurewidth}{10cm}
+        \input{figures/plots_ex4/6endand20pichconstrain}
+        \caption{Closed loop optimal control with $-20^\circ\leq p\leq 20^\circ$.} 
+\label{fig:closed_loop_restricted} 
+\end{figure}

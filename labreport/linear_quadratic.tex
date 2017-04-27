@@ -1,0 +1,100 @@
+\section{Linear Quadratic Feedback}\label{sec:linear_quadratic}
+\subsection{Calculation of optimal feedback matrix}\label{sec:optimal_K_lqr}
+In section \textcolor{red}{REF TO WHAT ANDREAS WROTE}, we calculated an optimal input sequence $u^*$, as well as the corresponding optimal trajectory $x^*$. In this section, we will introduce a linear quadratic controller feedback on the form seen in equation \ref{eq:lq_optimal_feedback}.
+\begin{equation}\label{eq:lq_optimal_feedback}
+    u_k = u_k^* - K^T(x_k - x_k^*)
+\end{equation}
+Under this scheme, the already calculated sequences for $u^*$ and $x^*$ will be followed as long as the helicopter is "on point". If a deviation is measured, the feedback term will modify the manipulated variable to compensate. This control structure is illustrated in figure \textcolor{red}{DRAW FIGURE}.
+%\begin{figure}
+%    \centering
+%    \includegraphics{}
+%    \caption{Caption}
+%    \label{fig:control_lq_feedback}
+%\end{figure}
+The whole objective of this undertaking is thus to find a good $K$ for the feedback loop. As stated, this will be done using linear quadratic optimization - that is, given the linear model in equation \ref{eq:linear_ss_model}, we want to minimize the objective function $J$, given in equation \ref{eq:lqr_state}. Here, $Q$ and $R$ are matrices that respectively penalize deviations in observed state, and use of the modified variable. Only the relationship between $Q$ and $R$ matters; thus one can hold either $Q$ or $R$ constant and only tune the other, to not have to worry about tuning two matrices.
+\begin{equation}\label{eq:linear_ss_model}
+    \Delta x_{i+1} = A\Delta x_i + B\Delta u_i
+\end{equation}
+\begin{equation}\label{eq:lqr_state}
+    J = \sum_{i = 0}^\infty \Delta x_{i+1}^T Q \Delta x_{i+1} + \Delta u_i^T R \Delta u_i,\quad Q\geq0, R > 0
+\end{equation}
+In our case, we do not want to penalize deviations to (1) the travel rate, (2) the pitch, and (3) the pitch rate. That is, we only care about deviations in the travel. This gives us the $Q$ matrix seen in equation \ref{eq:lqr_R_and_Q}.
+\begin{equation}\label{eq:lqr_R_and_Q}
+    Q = \begin{bmatrix}
+        1 & 0 & 0 & 0\\
+        0 & 0 & 0 & 0\\
+        0 & 0 & 0 & 0\\
+        0 & 0 & 0 & 0\\
+    \end{bmatrix}\qquad
+    R = \begin{bmatrix}
+        0.1
+    \end{bmatrix}
+\end{equation}
+To make tuning a simple task, we decided to hold $Q$ constant, and only tweak the value for $R$. After some experimentation, an $R$ equal to $0.1$ was chosen, as can also be seen in equation \ref{eq:lqr_R_and_Q}.\\
+\\
+When both $Q$ and $R$ have been decided, the value of $K$ can be determined by solving the algebraic Riccati equation. MATLAB makes this a trivial task, by offering the command \lstinline!dlqr(A,B,Q,R,N)!, which calculates the optimal gain matrix $K$ for the discrete time case of a state space system. Here, $A$ and $B$ refer to the system matrix and driving matrix, as in equation \ref{eq:linear_ss_model}. $Q$ and $R$ are the matrices used in equation \ref{eq:lqr_state}, and determine the penalty weighting. Finally, $N$ describes an interaction term between $u$ and $x$, which is not used in our formulation of the cost function.\\
+\\
+To calculate the optimal feedback matrix, the MATLAB code seen in listing \ref{lst:K_in_lqr} was used. The command to \lstinline!problem2! contains the code developed in \textcolor{red}{REF TO ANDREAS' PART}, and simply defines- and discretizes the model. Next, $R$ and $Q$ are defined in accordance with equation \ref{eq:lqr_R_and_Q}. Finally, MATLAB computes the algebraic Riccati equation and returns the unique stabilizing solution.
+\begin{lstlisting}[caption=Computation of the optimal feedback matrix K.,label=lst:K_in_lqr]
+%% Initialization and model definition
+problem2
+%% Drive force penalty
+R = [0.1];
+%% Deviation penalty
+Q_feedback = diag([1,0,0,0]);
+%% Calculate K
+[K, P, e] = dlqr(A1, B1, Q_feedback, R,  []);
+%% Export to Simulink...
+%% ...
+\end{lstlisting}
+\subsection{Response under LQR}
+The response experienced under the LQR scheme can be seen in figure \ref{fig:lqr_travel_50} and figure \ref{fig:lqr_pitch_50}. As can be seen in the pitch response, the actual helicopter head does not completely fall down to the reference around $t = 10\,\mathrm{s}$. The pitch followed by the helicopter also seems quite jagged as time progresses. This shows that the LQR is very willing to perform adjustments, as expected based on equation \ref{eq:lqr_R_and_Q}. This results in the "high fidelity" travel response seen in figure \ref{fig:lqr_travel_50}.\\
+\\
+\subsubsection{Thoughts on adjustments in $Q$ and $R$}
+Some experimentation was used to arrive at the values for $Q$ and $R$ seen in equation \ref{eq:lqr_R_and_Q}. However, as can be seen in figure \ref{fig:lqr_pitch_50}, the LQR does not hesitate in using an uneven driving force when deviations are observed.\\
+\\
+Rapid adjustments such as these can wear out the motors if used over extended periods of time. Thus it might be beneficial for a scenario run "outside the lab" to increase the cost of making heavy adjustments. This would of course impact how well the helicopter follows the reference path, but might extend the life of the equipment.
+\begin{figure}
+        \centering
+        \setlength{\figureheight}{6cm}
+        \setlength{\figurewidth}{10cm}
+        \input{figures/plots_ex3/subtask2_50Q}
+        \caption{Travel response with LQR implemented as in section \ref{sec:optimal_K_lqr}.}
+        \label{fig:lqr_travel_50}
+\label{fig:ex3_travel} 
+\end{figure}    
+\begin{figure}
+        \centering
+        \setlength{\figureheight}{6cm}
+        \setlength{\figurewidth}{10cm}
+        \input{figures/plots_ex3/subtask2_50Q_u}
+        \caption{Pitch response with LQR impelented as in section \ref{sec:optimal_K_lqr}.}
+        \label{fig:lqr_pitch_50}
+\label{fig:ex3_u} 
+\end{figure} 
+\subsection{MPC vs LQR}
+Another option, instead of using a Linear Quadratic Regulator, would be to use a Model Predictive Controller. In our case, the main difference would be that LQR is a function of the past; it takes a deviation at one step and minimizes a cost function to find the "best" next value. Furthermore, once $Q$ and $R$ are defined, the optimal matrix $K$ can be computed - before the helicopter takes flight, so to say.\\
+\\
+MPC on the other hand, will at each step calculate the optimal strategy a set number of steps into the feature, based on the observed state when it is invoked. Thus, whereas LQR can be computed before hand, and will choose the lowest cost based on its $Q$ and $R$ matrices - MPC will need to re-evaluated at each step, and so requires a lot of computation.
+
+% TTK4135 - Helicopter lab
+ %problem 3.
+
+%% Initialization and model definition
+%problem2
+%ex2_4
+%% Drive force penalty
+
+%R = [0.1];
+
+%Q_feedback = diag([1, 0,0,0]);
+
+%% Calculate K
+%[K, P, e] = dlqr(A1, B1, Q_feedback, R, []);
+
+%% Export to Simulink
+%pitchRef = [t', u];
+%travelRef = [t', x1, x2, x3, x4];
+
+
+%plot(t',x1,t',u);

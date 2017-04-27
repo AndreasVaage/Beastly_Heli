@@ -6,9 +6,9 @@
 \begin{document}
 
 % Titlepage
-\title{LaTeX Lab Report Template}
+\title{TTK4135 Optimization and Control: Helicopter Lab}
 \author{Group 00\\Student 70000\\Student 70001\\Student 70002}
-\date{January 1, 1970}
+%\date{January 1, 1970}
 \begin{titlepage}
     \maketitle
     \begin{figure}
@@ -32,12 +32,16 @@
 % Main content
 \newpage
 \setcounter{page}{1}
-\include{intro}
-\include{part1}
-\include{part2}
-\include{part3}
-\include{conclusion}
-\include{appendix}
+%\include{intro} --------------------- Write intro and abstract
+\include{problem_description} %% ------------- Still needs a free body diagram
+% ------------------------------------------------- Andreas goes here
+\include{linear_quadratic} %% --------------- Still needs references to Andreas, and one figure
+\include{two_dimensions}
+
+%\include{part2}
+%\include{part3}
+%\include{conclusion}
+%\include{appendix}
 % \input simply inserts the contents of the file, while \include forces a \newpage.
 % See \input vs. \include: http://tex.stackexchange.com/questions/246/when-should-i-use-input-vs-include
 
